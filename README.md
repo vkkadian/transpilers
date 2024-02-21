@@ -33,6 +33,7 @@ EBNF and W3C EBNF: EBNF and W3C EBNF are not tied to any specific tool or parser
 ANTLR4: ANTLR4 is a specific parser generator tool that uses its own grammar syntax based on EBNF. It provides a set of tools and libraries for generating parsers and lexers from grammar specifications, along with additional features for manipulating and processing parsed input.
 
 ##Summary
+
 In summary, EBNF and W3C EBNF are general-purpose notations for describing the syntax of languages, while ANTLR4 is a specific parser generator tool that uses its own EBNF-like syntax to define grammars and generate parsers. ANTLR4 extends traditional EBNF with additional features and tooling support for building parsers and other language processing tools.
 
 Here's a table displaying the differences between EBNF, W3C EBNF, and ANTLR4 grammars:
