@@ -44,7 +44,20 @@ func main() {
             }
         }
     `
-    readFromStore(query, store)
+    // Execute SPARQL query
+    iter := store.QuadStore().ExecuteString(query)
+    defer iter.Close()
+    
+    // Print query solutions
+    for {
+        // Next solution
+        sol, ok := iter.NextSolution()
+        if !ok {
+            break
+        }
+        // Print solution variables
+        fmt.Println(sol)
+    }
 }
 
 // makeCayleyMemoryGraph creates an in-memory Cayley graph
@@ -81,14 +94,14 @@ func loadTurtleFiles(directory string, store *cayley.Handle) error {
     for _, fileInfo := range fileInfos {
         if fileInfo.IsDir() {
             // If directory, recursively call loadTurtleFiles
-            err := loadTurtleFiles(directory+"/"+fileInfo.Name(), store)
+            err := loadTurtleFiles(filepath.Join(directory, fileInfo.Name()), store)
             if err != nil {
                 return err
             }
         } else {
             // If Turtle file, load into Cayley graph
-            if fileInfo.Mode().IsRegular() && fileInfo.Name()[len(fileInfo.Name())-4:] == ".ttl" {
-                err := store.LoadQuadFile(fmt.Sprintf("%s/%s", directory, fileInfo.Name()), rdf.Default)
+            if fileInfo.Mode().IsRegular() && filepath.Ext(fileInfo.Name()) == ".ttl" {
+                err := readAndLoadTurtleFile(filepath.Join(directory, fileInfo.Name()), store.QuadWriter())
                 if err != nil {
                     return err
                 }
@@ -97,22 +110,27 @@ func loadTurtleFiles(directory string, store *cayley.Handle) error {
     }
     return nil
 }
-func readFromStore(query string, store *cayley.Handle) error {
 
-// Execute SPARQL query
-solutions := make(chan quad.Value)
-err := store.ExecuteQuadPath(query).Iterate(nil).EachValue(nil, func(value quad.Value) {
-    solutions <- value
-})
-if err != nil {
-    fmt.Println("Error executing SPARQL query:", err)
-    return err
-}
+// readAndLoadTurtleFile reads a Turtle file and adds its quads to the graph
+func readAndLoadTurtleFile(filePath string, w quad.Writer) error {
+    file, err := os.Open(filePath)
+    if err != nil {
+        return err
+    }
+    defer file.Close()
 
-// Print query solutions
-for sol := range solutions {
-    fmt.Println(sol)
-}
+    // Read the Turtle file and add its quads to the writer
+    dec := quad.NewDecoder(file, quad.Turtle)
+    for {
+        q, err := dec.ReadQuad()
+        if err != nil {
+            if err == io.EOF {
+                break
+            }
+            return err
+        }
+        w.WriteQuad(q)
+    }
 
-  
+    return nil
 }
